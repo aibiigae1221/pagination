@@ -52,7 +52,7 @@ const makePagination = (
     // 24 > 18, 20은 18로 대체되고 '다음' 버튼 제거
     // p: 15 / 5 = 3, 3 / 5 < 1 q: 첫 페이지블록을 넘어서는 조건은 pageNo와 pagesPerBlock을 나누어서 1이 안넘으면 첫번쨰 블록이고 넘으면 두번째 이상 블록.
     // 두번째 이상 블록이면, '이전' 버튼 생성
-    // 
+    // 그리고, 계산 다하고 pageStartNum은 +1 해줘야 함. 0부터 시작하거나, 이전블록 pageNum을 가리키기 떄문에.
     
  
 
@@ -78,9 +78,7 @@ const makePagination = (
         enablePrevBtn = false;
     }
 
-    if(pageStartNum == 0){
-        pageStartNum = 1;
-    }
+    pageStartNum++;
 
 
 
