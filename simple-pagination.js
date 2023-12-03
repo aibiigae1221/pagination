@@ -5,18 +5,24 @@
 
   사용 예시
 
-  makePagination({
-    targetSelector:".pagination",
-    pageNo:3,
-    totalArticleCnt: 253,
-    pageItemClasses:"font13 color-black font-regular item",
-    prevBtnClasses:"font13 color-black font-regular item",
-    nextBtnClasses:"font13 color-black font-regular item",
-    pageHolderClasses:"list",
-    onClickPage: pageNo => {
-        location.href = `/some-url?pageNo=${pageNo}&otherQueryParams=value`;
-    }
-  });
+
+    makePagination({
+        targetSelector:".pagination",
+        pageNo: 3,
+        totalArticleCnt:62,
+        pageHolderClasses:"list",
+        pageItemClasses:"item",
+        usePrevBtnImage: true,
+        prevBtnImagePath:"/org/img/pagination-prev-btn.png",
+        useNextBtnImage: true,
+        prevBtnImageClasses:"arrow",
+        nextBtnImagePath:"/org/img/pagination-next-btn.png",
+        nextBtnImageClasses:"arrow",
+        onClickPage: clickedPageNo => {
+            const keyword = new URLSearchParams(window.location.search).get("keyword");
+            location.href = `./trd.php?keyword=${keyword}&pageNo=${clickedPageNo}`;
+        }
+    });
   
 */
 
@@ -35,31 +41,47 @@ const makePagination = (
         return;
     }
 
-    // 22 % 4 = 2
-    // 22 - 2 = 20
-    // 20 + 4 = 24
-    
-    // 19 % 3 = 1
-    // 19 - 1 = 18
-    // 18 + 3 = 21
+   
+    // 6 % 5 = 1        // 나머지가 1 이상이면
+    // 6 - 1 = 5        // 현재 페이지에서 나머지값을 뺀 후 1 증가
+    // ++   
+    // 6                // start num 값 구함
+    // 6 - 1 + 5 = 10   // start - 1 + block 값 = 블록 내의 마지막 페이지 값
 
-    // 15 % 5 = 0
-    // 15 - 0 = 15
-    // 15 + 5 = 20
-    // 1p 10, row수 280이면, 28.
-    // 24 < 28, '다음' 버튼 추가
-    // p: row 수 172면, (172 / 10)  + (172 % 10)>0? 1 : 0  q: 18
-    // 24 > 18, 20은 18로 대체되고 '다음' 버튼 제거
-    // p: 15 / 5 = 3, 3 / 5 < 1 q: 첫 페이지블록을 넘어서는 조건은 pageNo와 pagesPerBlock을 나누어서 1이 안넘으면 첫번쨰 블록이고 넘으면 두번째 이상 블록.
-    // 두번째 이상 블록이면, '이전' 버튼 생성
-    // 그리고, 계산 다하고 pageStartNum은 +1 해줘야 함. 0부터 시작하거나, 이전블록 pageNum을 가리키기 떄문에.
-    
- 
+    // 7 % 5 = 2        
+    // 7 - 2 = 5
+    // ++
+    // 6
+    // 6 - 1 + 5 = 10
+
+    // 15 % 5 = 0       // 나머지가 0이면 블록 마지막 페이지를 가리키므로
+    // 15 - 5 = 10      // 현재 페이지에서 블록 페이지 단위만큼 뺀 후 1 증가
+    // ++           
+    // 11               // start num 값 구함
+    // 11 -1 + 5 = 15
+
+    // 페이장 10개의 글, row수 280이면, 2총 28페이지
+    // 현재블록 최대 페이지 수 25이면 25 < 28, '다음' 버튼 추가
+    // row 수가 240이고 현재 블록 최대 페이지 수가 25면,
+    // 25 < 24
+    // 현재 블록 최대 페이지 수를 24로 바꾸고 "다음" 버튼 제거
+
+    // 3 / 5 < 1        // 현재 페이지 / 블록 페이지 단위
+    // 5 / 5 = 1        // 현재 블록일 경우 1이하임을 확인 할 수 있음
+    // 11 / 5 > 1       // 두 번째 블록부터 1초과
+                        // 첫번째 블록일 경우 '이전' 버튼 제거
 
     let pageStartNum = pageNo % pagesPerBlock;
-    pageStartNum = pageNo - pageStartNum;
+    if(pageStartNum > 0){
+        pageStartNum = pageNo - pageStartNum + 1;
+    }else if(pageStartNum == 0){
+        pageStartNum = pageNo - pagesPerBlock + 1;
+    }else{
+        console.log("페이지네이션 오류");
+        return;
+    }
 
-    let pageEndNum = pageStartNum + pagesPerBlock;
+    let pageEndNum = pageStartNum + pagesPerBlock - 1;
     const totalPages = Math.floor(totalArticleCnt / articlesPerPage) + ((totalArticleCnt % articlesPerPage > 0)? 1 : 0) ; 
 
     let enableNextBtn = true; 
@@ -67,23 +89,17 @@ const makePagination = (
 
     if(pageEndNum > totalPages){
         pageEndNum = totalPages;
-        nextBtnPageNo = pageEndNum + 1; // 재설정
+        nextBtnPageNo = -1;
         enableNextBtn = false;
     }
 
     let enablePrevBtn = true;
     let prevBtnPageNo = pageStartNum - 1;
 
-    if(pageNo / pagesPerBlock < 1){
+    if(pageNo / pagesPerBlock <= 1){
         enablePrevBtn = false;
+        prevBtnPageNo = -1;
     }
-
-    pageStartNum++;
-
-
-
- 
-
 
     const ul = $("<ul></ul>");
 
@@ -99,7 +115,7 @@ const makePagination = (
         addCssClasses(li, prevBtnClasses);
         
         if(!usePrevBtnImage){
-            li.append(prevBtnChar);
+            li.html(prevBtnChar);
         }else{
             const img = $(`<img src="${prevBtnImagePath}" alt="${prevBtnImagePath}" />`)
             if(typeof prevBtnImageClasses != "undefined"){
@@ -117,7 +133,7 @@ const makePagination = (
         $(li).attr("data-page-no", i);        
 
         addCssClasses(li, pageItemClasses);
-        li.append(i);
+        li.html(i);
         ul.append(li);
 
         if(i == pageNo){
@@ -133,7 +149,7 @@ const makePagination = (
         addCssClasses(li, nextBtnClasses);
         
         if(!useNextBtnImage){
-            li.append(nextBtnChar);
+            li.html(nextBtnChar);
         }else{
             const img = $(`<img src="${nextBtnImagePath}" alt="${nextBtnImagePath}" />`)
             if(typeof nextBtnImageClasses != "undefined"){
